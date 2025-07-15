@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import FastAPI, Depends, HTTPException, status
 from . import schemas, models
 from .database import engine, SessionLocal
@@ -51,14 +52,14 @@ def destroy(id, db: Session = Depends(get_db)):
     return "deleted"
 
 
-@app.get('/blogs', response_model=list[schemas.ShowBlog])
+@app.get('/blogs', response_model=List[schemas.ShowBlog])
 def all(db: Session = Depends(get_db)):
     blogs = db.query(models.Blog).all()
 
     return blogs
 
 
-@app.get('/blog/{id}', status_code=200, response_model=schemas.ShowBlog)
+@app.get('/blog/{id}', response_model=schemas.ShowBlog)
 def show(id, db: Session = Depends(get_db)):
     blog = db.query(models.Blog).filter(models.Blog.id == id).first()
     if not blog:
@@ -66,3 +67,27 @@ def show(id, db: Session = Depends(get_db)):
                             detail=f"Blog with the id {id} is not available")
 
     return blog
+
+
+@app.post('/user')
+def create_user(request: schemas.User, db: Session = Depends(get_db)):
+    new_user = models.User(
+        name=request.name, email=request.email, password=request.password)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+
+@app.get('/users', response_model=List[schemas.ShowUser])
+def all(db: Session = Depends(get_db)):
+    users = db.query(models.User).all()
+
+    return users
+
+
+@app.get('/user/{id}')
+def show(id, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == id).first()
+
+    return user
