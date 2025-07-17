@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from typing import List
-from .. import schemas, models, database
+from .. import schemas, database
+from ..repository import blog
 
 router = APIRouter(
     prefix="/blog",
-    tags=["Blogs"]
+    tags=["blogs"]
 )
 
 get_db = database.get_db
@@ -13,52 +14,24 @@ get_db = database.get_db
 
 @router.get("/", response_model=List[schemas.ShowBlog])
 def all(db: Session = Depends(get_db)):
-    blogs = db.query(models.Blog).all()
-
-    return blogs
+    return blog.get_all(db)
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.ShowBlog)
 def create(request: schemas.Blog, db: Session = Depends(get_db)):
-    new_blog = models.Blog(title=request.title, body=request.body, user_id=1)
-    db.add(new_blog)
-    db.commit()
-    db.refresh(new_blog)
-
-    return new_blog
+    return blog.create(request, db)
 
 
 @router.put("/{id}", status_code=status.HTTP_202_ACCEPTED)
 def update(id: int, request: schemas.Blog, db: Session = Depends(get_db)):
-    blog = db.query(models.Blog).filter(
-        models.Blog.id == id).update(dict(request))
-
-    if not blog:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Blog with id {id} not found")
-    db.commit()
-
-    return "updated"
+    return blog.update(id, request, db)
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def destroy(id: int, db: Session = Depends(get_db)):
-    blog = db.query(models.Blog).filter(models.Blog.id ==
-                                        id).delete(synchronize_session=False)
-
-    if not blog:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Blog with id {id} not found")
-    db.commit()
-
-    return "deleted"
+    return blog.destroy(id, db)
 
 
 @router.get("/{id}", response_model=schemas.ShowBlog)
 def show(id: int, db: Session = Depends(get_db)):
-    blog = db.query(models.Blog).filter(models.Blog.id == id).first()
-    if not blog:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Blog with the id {id} is not found")
-
-    return blog
+    return blog.show(id, db)
