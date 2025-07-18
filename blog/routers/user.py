@@ -17,7 +17,7 @@ def create(request: schemas.User, db: Session = Depends(get_db)):
     return user.create(request, db)
 
 
-@router.get("/", response_model=List[schemas.ShowUser])
+@router.get("/all", response_model=List[schemas.ShowUser])
 def all(db: Session = Depends(get_db)):
     return user.all(db)
 
